@@ -3,7 +3,7 @@
 Plugin Name: Flickr + Highslide
 Plugin URI: http://flickrhighslide.com
 Description: This plugin displays flickr photos using highslide.
-Version: 1.4
+Version: 1.4.1
 Author: Pim Linders
 Author URI: http://www.pimlinders.com
  ____                       
@@ -21,7 +21,7 @@ Author URI: http://www.pimlinders.com
    \ \____/ \ \_\ \_\ \_\ \___,_\ \____\\ \_\\/\____/
     \/___/   \/_/\/_/\/_/\/__,_ /\/____/ \/_/ \/___/ 
                                                                                                                                                                                                       
-Copyright 2009  Pim Linders
+Copyright 2009-2012  Pim Linders
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -498,38 +498,49 @@ function flickr_highslide_options() {
 </div>
 <?php
 }
+add_filter('widget_text', 'do_shortcode'); //* KW 1.4.1
 add_action( "wp_head", 'flickr_highslide_head' );
 add_action('admin_menu', 'flickr_highslide_menu');
 add_action( 'admin_init', 'flickr_highslide_init' );
 add_shortcode('flickr_highslide', 'flickr_highslide');
 register_activation_hook( __FILE__, 'flickr_highslide_activate' );
 function flickr_highslide($atts=false){
-    extract(shortcode_atts(array(
-        'set' => get_option('photoset')
-    ), $atts));
-	//get values from the backend
-	$apikey = get_option('key');
-	$id = get_option('id');
-	$imageNum = get_option('imageNum');
-	$order = get_option('order');
-	$imageSize = get_option('imageSize');
-	$thumbnail = get_option('thumb');
-	$options = get_option('options');
-    $photoSet = $set;
-	$displayTitle = get_option('title');
-	$pagination = get_option('pagination');
-	$pageSize = get_option('pageSize');
-	$flickrPhotos = $imageNum;
+
+    //* KW 1.4.1
+    $default_atts	= array('set'			=> '',	//* backward compatibility
+							'photoset'		=> get_option('photoset'), 
+							'apikey'		=> get_option('key'),
+							'id'			=> get_option('id'),
+							'imagenum'		=> get_option('imageNum'),
+							'order'			=> get_option('order'),
+							'imagesize'		=> get_option('imageSize'),
+							'thumbnail'		=> get_option('thumb'),
+							'options'		=> get_option('options'),
+							'displaytitle'	=> get_option('title'),
+							'pagination'	=> get_option('pagination'),
+							'pagesize'		=> get_option('pageSize'),
+							'extrastyle'	=> '',
+							'cssclass'		=> ''
+							);
+	$work_atts		= shortcode_atts($default_atts, $atts);
+	extract($work_atts);
+
+	//* KW 1.4.1
+	if ($set != "") $photoset = $set; //* backward compatibility
+	if (! is_bool($pagination  )) $pagination   = filter_var($pagination,  FILTER_VALIDATE_BOOLEAN);
+	if (! is_bool($displaytitle)) $displaytitle = filter_var(displaytitle, FILTER_VALIDATE_BOOLEAN);
+
+	$flickrPhotos = $imagenum;
 	//limit page size to 500, this is done because a page corresponds with an xml request, an xml page from flickr is limited to 500 children
 	$requestSize = 500;
 	if($pageSize>$requestSize)
 		$pageSize = $requestSize;
-	if($imageNum<$requestSize)
-		$perPage = $imageNum;
+	if($imagenum<$requestSize)
+		$perPage = $imagenum;
 	else
 		$perPage = $requestSize;
 	//ensure the that the plugin is configured correctly, if not, display an error message
-	if($id == '' || $imageNum == '' || ($pagination == true && $pageSize == ''))
+	if($id == '' || $imagenum == '' || ($pagination == true && $pageSize == ''))
 		echo '<p>Flickr + highlside is not configured properly, to configure Flickr + Highslide go to Admin -> Setting -> Flickr + Highslide.</p><p>Note: when using pagination you must specify the number of images per page.</p>';
 	else{
 		//get page number, if there is no page number set page to 1
@@ -538,18 +549,18 @@ function flickr_highslide($atts=false){
 			$page = 1;
 		if($pagination){
 			//when the total number of images exceeds that of the number of images per page, set the loop to the number of images per page
-			if($imageNum > $pageSize){
+			if($imagenum > $pageSize){
 				$flickrPhotos = $pageSize;
 				//limit the number of images to display when a page request exceed the number of images
 				//i.e. if number of images is 101 and the number of image per page is 50, limit the 3rd page to 1 photo
-				$limit = ($pageSize * $page) - $imageNum;
+				$limit = ($pageSize * $page) - $imagenum;
 				if($limit > 0)
 					$flickrPhotos = ($pageSize - $limit); 
 			}
 			$perPage = $pageSize;
 		}
 		//use flickr.people.getPublicPhotos flickr api method
-		if($photoSet==''){
+		if($photoset==''){
 			$url = "http://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=$id&api_key=$apikey&per_page=$perPage&page=$page";
 			$xml = flickr_highslide_get_xml($url);
 			//set the photoXml to use photos
@@ -563,7 +574,7 @@ function flickr_highslide($atts=false){
 			$url = "http://api.flickr.com/services/rest/?method=flickr.photosets.getList&user_id=$id&api_key=$apikey";
 			$photoList = flickr_highslide_get_xml($url);
 			for ($j=0; $j<count($photoList->photosets->photoset); $j++) {
-				if($photoList->photosets->photoset[$j]->title==$photoSet){
+				if($photoList->photosets->photoset[$j]->title==$photoset){
 					$photoSetId = $photoList->photosets->photoset[$j]['id'];
 					break;
 				}		
@@ -595,9 +606,9 @@ function flickr_highslide($atts=false){
 			if($order == 'random')
 				$random = flickr_highslide_random($childCnt);
 			//add flickr image extension
-			if($imageSize == 'medium')
+			if($imagesize == 'medium')
 				$size = '';
-			else if($imageSize == 'small')
+			else if($imagesize == 'small')
 				$size = '_m';
 			else
 				$size = '_b';
@@ -611,20 +622,20 @@ function flickr_highslide($atts=false){
 			echo "<!-- Flickr + Highslide by Pim Linders http://www.pimlinders.com/ -->\n";
 			//Gallery 13 - Gallery in the parent page
 			if($options == '13'){
-				echo '<div class="flickr_highslide" style="overflow:auto; display:none;">';
+				echo '<div class="flickr_highslide ' . $cssclass . '" style="overflow:auto; display:none;">';      //* KW 1.4.1
 			}
 			else{
-				echo '<div class="flickr_highslide" style="overflow:auto;">';
+				echo '<div class="flickr_highslide ' . $cssclass . '" style="overflow:auto;' . $extrastyle . ' >'; //* KW 1.4.1
 			}
 			//Gallery 8 - Controls in the heading
 			if($options == '8')
 				$heading = true;
 			//if user input is larger than total photos available, make imageNum the total images
-			if($imageNum > $total)
-				$imageNum = $total;
+			if($imagenum > $total)
+				$imagenum = $total;
 			//find the last page
 			if($pagination)
-				$lastPage = ceil($imageNum/$pageSize);
+				$lastPage = ceil($imagenum/$pageSize);
 			//keep track of the current position in the xml page 
 			$j = 0;
 			//loop through all the photos

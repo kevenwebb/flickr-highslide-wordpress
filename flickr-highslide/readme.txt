@@ -4,8 +4,8 @@ Contributors: Pim Linders
 Donate link: http://flickrhighslide.com
 Tags: photos, images, admin, gallery, post, photo album, pictures, photo, photoset, picture, image, flickr, highslide
 Requires at least: 2.7
-Tested up to: 3.0.1
-Stable tag: 1.4
+Tested up to: 3.3.1
+Stable tag: 1.4.1
 
 == Description ==
 
@@ -20,6 +20,8 @@ This plugin displays flickr photos using highslide.
 * Ability to change the size of images and thumbnails
 * Ability to seperate photos into pages
 * Displays photo titles
+* Shortcode now allows for overriding many of the default settings, 
+  particularly useful for a home page widget.
 
 == Credits ==
 
@@ -64,6 +66,13 @@ http://www.highslide.com/ on commercial websites.
 6. Highslide - Gallery in the parent page
 
 == Changelog ==
+
+= 1.4.1 =
+* Added shortcode expansion inside of WP widget text blocks.
+* Added support for shortcode parameters to override plugin settings.
+* Added support for shortcode parameter of 'extrastyle' and 'class'. If used, 
+  these are added to the outer HTML div tag.
+* Tested with WP 3.3.1.
 
 = 1.4 =
 * Added the ability to display multiple photosets
@@ -110,3 +119,13 @@ You can use this tool http://idgettr.com/ to find your flickr user ID.
 = This photo is currently unavailable =
 
 You get this error if you have changed the permission of your pictures from private to public and vice versa. If you want large images then you will need to re-upload your pictures as public to flickr. Changing the image size to medium or small will display your images.
+
+= How do I use the extended 'shortcode parameters' added in 1.4.1? =
+
+The standard shortcode would look like:
+	[flickr_highslide set="MY SET NAME"]
+
+If you want to use only a few photos (like on a home-page widget)
+	[flickr_highslide set="MY SET NAME" pagesize=5 imagenum=5 pagination=false extrastyle="margin-left: 15px; " ]
+
+	This example forces only 5 images to show, have no pagination section, and add 15 pixels of margin (for spacing).
